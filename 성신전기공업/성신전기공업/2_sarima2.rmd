@@ -1,0 +1,95 @@
+---
+title: "R Notebook"
+author: ckdgu
+date: 2021-08-26
+output: html_notebook
+---
+
+# (0) libarary
+
+```{r}
+#install.packages('tseries')
+#install.packages('TTR')
+#install.packages('forecast')
+library(tseries)
+library(TTR)
+library(forecast)
+library(MASS)
+```
+
+# (1) Data Read
+```{r}
+df <- read.csv('data/data5.csv')
+df <- ts(df[1], frequency = 12, start = c(2011.01))
+plot(df)
+```
+# (2) basic EDA
+```{r}
+par(mfrow=c(1,2))
+acf(df)
+pacf(df)
+```
+# (3) kpss test
+
+```{r}
+kpss.test(df)
+```
+
+# (4) 모형 유추
+
+```{r}
+auto.arima(df) # seasonal arima
+```
+
+# (5) 모형 결정
+```{r}
+arima(df, order=c(0,1,1), seasonal = list(order=c(0,0,1), period=12))
+```
+
+
+# (6) 모형 진단
+# 잔차 시계열이 백색잡음라고 하는데 큰 문제가 없다.
+```{r}
+tsdiag(auto.arima(df)) # 0을 중심으로 띠타입의 형상, lag0 >1 이후는 0 , 파란선 다 위에있음 =>> 백색잡음의 근거가 됨.
+```
+
+```{r}
+autoplot(auto.arima(df)) # 빨간점이 -부호를 갖으면 원밖에 있기 때문에 => 가역성을 만족
+```
+
+# (6) 예측
+```{r}
+x <- ts(df[1:(length(df)-24)]) # 2011년 ~ 2018년
+y <- ts(df[-(1:(length(df)-24))]) # 최근 2년
+```
+
+
+```{r}
+#(0,1,1)
+arima.fore1 <- forecast(arima(x, order=c(0,1,1), seasonal = list(order=c(0,0,1), period=12)))$mean
+plot(c(arima.fore1), lwd=2.5, type='line', col="orange",ylim=c(0,110), xlab='', ylab='')
+par(new=TRUE)
+plot(c(y),lwd=2.5, col="blue", type='line',ylim=c(0,110), xlab='month', ylab='count')
+```
+```{r}
+#(0,1,1)
+arima.fore2 <- forecast(arima(x, order=c(0,1,1), seasonal = list(order=c(0,1,1), period=12)))$mean
+plot(c(arima.fore2), lwd=2.5, type='line', col="orange",ylim=c(0,110), xlab='', ylab='')
+par(new=TRUE)
+plot(c(y), lwd=2.4, col="blue", type='line',ylim=c(0,110), xlab='month', ylab='count')
+```
+```{r}
+#auto arima
+arima.fore3 <- forecast(auto.arima(x), h=24)
+plot(arima.fore3 ,xlim=c(0,120),ylim=c(0,250))
+par(new=TRUE)
+plot(seq(97,120),c(y), col="orange", type='line',xlim=c(0,120),ylim=c(0,250),xlab='', ylab='')
+
+```
+
+```{r}
+print('model1')
+print((sum((c(y) - arima.fore1)^2))/12)
+print('model2')
+print((sum((c(y) - arima.fore2)^2))/12)
+```

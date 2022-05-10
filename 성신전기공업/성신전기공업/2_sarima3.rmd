@@ -1,0 +1,77 @@
+---
+title: "R Notebook"
+author: ckdgu
+date: 2021-08-27
+output: html_notebook
+---
+
+# (0) Data read
+```{r}
+df <- read.csv('./data/dataF.csv')
+df <- as.data.frame(df)
+summary(df)
+```
+
+```{r}
+df <- as.numeric(df$money)
+df <- ts(df, frequency = 12, start = c(2011.01))
+df
+```
+```{r}
+plot(df)
+```
+
+# (1) basic EDA
+```{r}
+par(mfrow=c(1,2))
+acf(df)
+pacf(df)
+```
+# (3) kpss test
+
+```{r}
+kpss.test(df)
+```
+
+# (4) train/test
+```{r}
+x <- ts(df[1:(length(df)-12)])
+y <- ts(df[-(1:(length(df)-12))])
+plot(x)
+
+```
+
+```{r}
+par(mfrow=c(1,2))
+acf(x)
+pacf(x)
+```
+
+# (5) 모형 유추
+```{r}
+auto.arima(x) # seasonal arima
+```
+
+
+# (6) 모형 결정
+```{r}
+arima(x, order=c(1,0,0), seasonal = list(order=c(0,0,1), period=12))
+```
+
+
+# (7) 모형 진단
+```{r}
+tsdiag(auto.arima(x)) # 0을 중심으로 띠타입의 형상, lag0 >1 이후는 0 , 파란선 다 위에있음 =>> 백색잡음의 근거가 됨.
+```
+```{r}
+autoplot(auto.arima(x)) # 빨간점이 -부호를 갖으면 원밖에 있기 때문에 => 가역성을 만족
+# 잔차 시계열이 백색잡음라고 하는데 큰 문제가 없다.
+```
+
+# (8) forecast
+```{r}
+arima.fore1 <- forecast(arima(x, order=c(0,0,1)),h=12)
+plot(arima.fore1,,ylim=c(0,400000))
+par(new=TRUE)
+plot(seq(109,120),c(y), col="orange", type='line',xlim=c(0,120),ylim=c(0,400000),xlab='', ylab='')
+```
